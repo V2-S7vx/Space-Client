@@ -4,7 +4,7 @@
 #define MyAppExeName "SpaceClient.exe"
 
 [Setup]
-AppId={{C5B3E3C6-0E4A-4E62-9E0D-SPACECLIENT01}
+AppId={{C5B3E3C6-0E4A-4E62-9E0D-5AACE0101C01}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
