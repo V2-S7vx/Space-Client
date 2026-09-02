@@ -18,12 +18,7 @@ import java.util.Random;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
-/**
- * Minimal Space Client launcher shell.
- *
- * The first pass intentionally contains only the animated star background and
- * floating promotional text. Launcher controls can be layered on top later.
- */
+/** Minimal Space Client launcher shell. */
 public final class LauncherMain extends Canvas implements Runnable, KeyListener {
     private static final int TARGET_FPS = 120;
     private static final long FRAME_TIME_NS = 1_000_000_000L / TARGET_FPS;
@@ -98,11 +93,8 @@ public final class LauncherMain extends Canvas implements Runnable, KeyListener 
             update(deltaSeconds);
             render();
 
-            long elapsed = System.nanoTime() - frameStart;
-            long remaining = FRAME_TIME_NS - elapsed;
-            if (remaining > 0) {
-                sleepPrecisely(remaining);
-            }
+            long remaining = FRAME_TIME_NS - (System.nanoTime() - frameStart);
+            if (remaining > 0) sleepPrecisely(remaining);
         }
     }
 
@@ -110,9 +102,7 @@ public final class LauncherMain extends Canvas implements Runnable, KeyListener 
         int width = Math.max(getWidth(), 1);
         int height = Math.max(getHeight(), 1);
 
-        if (stars.size() != STAR_COUNT) {
-            resizeStarfield(width, height);
-        }
+        if (stars.size() != STAR_COUNT) resizeStarfield(width, height);
 
         for (Star star : stars) {
             star.x += star.velocityX * deltaSeconds;
@@ -149,11 +139,9 @@ public final class LauncherMain extends Canvas implements Runnable, KeyListener 
                 try {
                     int width = getWidth();
                     int height = getHeight();
-
                     g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
                     g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                     g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-
                     paintBackground(g, width, height);
                     paintStars(g);
                     paintQuote(g, width, height);
@@ -167,10 +155,7 @@ public final class LauncherMain extends Canvas implements Runnable, KeyListener 
     }
 
     private void paintBackground(Graphics2D g, int width, int height) {
-        g.setPaint(new GradientPaint(
-            0, 0, new Color(1, 2, 4),
-            width, height, new Color(5, 6, 9)
-        ));
+        g.setPaint(new GradientPaint(0, 0, new Color(1, 2, 4), width, height, new Color(5, 6, 9)));
         g.fillRect(0, 0, width, height);
 
         // Very subtle vignette: no blue glow/blob treatment.
@@ -187,7 +172,6 @@ public final class LauncherMain extends Canvas implements Runnable, KeyListener 
         for (Star star : stars) {
             float pulse = 0.78f + 0.22f * (float) Math.sin(star.twinkleTime);
             int alpha = Math.max(20, Math.min(220, (int) (star.alpha * pulse)));
-
             g.setColor(new Color(255, 255, 255, alpha));
             g.fillOval((int) star.x, (int) star.y, star.size, star.size);
         }
@@ -199,7 +183,6 @@ public final class LauncherMain extends Canvas implements Runnable, KeyListener 
         long age = System.currentTimeMillis() - activeQuote.startedAt;
         float progress = Math.min(1f, age / (float) QUOTE_TRAVEL_MS);
         float y = height + 28f - progress * (height + 70f);
-
         float fadeIn = Math.min(1f, age / 1_500f);
         float fadeOut = Math.min(1f, (QUOTE_TRAVEL_MS - age) / 2_000f);
         float alpha = Math.max(0f, Math.min(fadeIn, fadeOut));
@@ -207,7 +190,6 @@ public final class LauncherMain extends Canvas implements Runnable, KeyListener 
         g.setFont(new Font("SansSerif", Font.PLAIN, 14));
         int textWidth = g.getFontMetrics().stringWidth(activeQuote.text);
         int x = (width - textWidth) / 2;
-
         g.setColor(new Color(255, 255, 255, Math.round(205 * alpha)));
         g.drawString(activeQuote.text, x, Math.round(y));
     }
@@ -220,7 +202,6 @@ public final class LauncherMain extends Canvas implements Runnable, KeyListener 
             int alpha = 45 + random.nextInt(145);
             double speed = 3.0 + depth * 10.0;
             double angle = random.nextDouble() * Math.PI * 2.0;
-
             stars.add(new Star(
                 random.nextDouble() * width,
                 random.nextDouble() * height,
