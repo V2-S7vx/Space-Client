@@ -1,0 +1,28 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.spaceclient'
+version = '0.1.0'
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+jar {
+    archiveBaseName = 'space-client-launcher'
+    manifest {
+        attributes 'Main-Class': 'com.spaceclient.launcher.Main'
+    }
+}
+
+// Keep the launcher dependency-free for the first milestone.
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
