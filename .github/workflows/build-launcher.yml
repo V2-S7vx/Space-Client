@@ -25,6 +25,11 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+          cache: gradle
+
+      - name: Install Gradle
+        shell: powershell
+        run: choco install gradle -y --no-progress
 
       - name: Install Inno Setup
         shell: powershell
@@ -34,24 +39,26 @@ jobs:
         shell: powershell
         run: choco install imagemagick.app -y --no-progress
 
-      - name: Build launcher classes
+      - name: Verify Gradle project
         shell: powershell
-        run: |
-          New-Item -ItemType Directory -Force -Path build/launcher/classes | Out-Null
-          javac --release 21 -d build/launcher/classes launcher/src/main/java/com/spaceclient/launcher/LauncherMain.java
+        run: gradle --version
 
-      - name: Create launcher JAR
+      - name: Build launcher with Gradle
+        shell: powershell
+        run: gradle :launcher:clean :launcher:build --no-daemon
+
+      - name: Prepare jpackage input
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force -Path build/launcher/input | Out-Null
-          jar --create --file build/launcher/input/SpaceClient.jar --main-class com.spaceclient.launcher.LauncherMain -C build/launcher/classes .
+          Copy-Item launcher/build/libs/SpaceClient-${{ '0.1.0' }}.jar build/launcher/input/SpaceClient.jar
 
       - name: Create Windows icon from the Space Client logo
         shell: powershell
         run: |
           magick assets/space-client.svg -background none -density 192 -define icon:auto-resize=256,128,64,48,32,16 assets/SpaceClient.ico
 
-      - name: Bundle launcher with Java runtime
+      - name: Bundle launcher with a private Java runtime
         shell: powershell
         run: |
           Remove-Item -Recurse -Force build/launcher-image -ErrorAction SilentlyContinue
@@ -65,7 +72,7 @@ jobs:
             --icon assets/SpaceClient.ico `
             --dest build/launcher-image
 
-      - name: Build installer
+      - name: Build Windows installer
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force -Path build/installer | Out-Null
