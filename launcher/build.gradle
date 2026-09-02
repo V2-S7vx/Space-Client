@@ -1,0 +1,35 @@
+plugins {
+    id 'application'
+}
+
+group = rootProject.maven_group
+version = rootProject.mod_version
+
+application {
+    mainClass = 'com.spaceclient.launcher.LauncherMain'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 21
+    options.encoding = 'UTF-8'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+    withSourcesJar()
+}
+
+jar {
+    archiveBaseName = 'SpaceClient'
+    manifest {
+        attributes('Main-Class': application.mainClass.get())
+    }
+}
+
+// A normal runnable distribution is kept available for development.
+distributions {
+    main {
+        distributionBaseName = 'SpaceClient-Launcher'
+    }
+}

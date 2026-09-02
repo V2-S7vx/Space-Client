@@ -1,0 +1,103 @@
+name: Build Space Client Launcher
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "setup/**"
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows-installer:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Install Gradle
+        shell: powershell
+        run: choco install gradle -y --no-progress
+
+      - name: Install Inno Setup
+        shell: powershell
+        run: choco install innosetup -y --no-progress
+
+      - name: Install ImageMagick
+        shell: powershell
+        run: choco install imagemagick.app -y --no-progress
+
+      - name: Verify Gradle project
+        shell: powershell
+        run: gradle --version
+
+      - name: Build launcher with Gradle
+        shell: powershell
+        run: gradle :launcher:clean :launcher:build --no-daemon
+
+      - name: Prepare jpackage input
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path build/launcher/input | Out-Null
+          Copy-Item launcher/build/libs/SpaceClient-${{ '0.1.0' }}.jar build/launcher/input/SpaceClient.jar
+
+      - name: Create Windows icon from the Space Client logo
+        shell: powershell
+        run: |
+          magick assets/space-client.svg -background none -density 192 -define icon:auto-resize=256,128,64,48,32,16 assets/SpaceClient.ico
+
+      - name: Bundle launcher with a private Java runtime
+        shell: powershell
+        run: |
+          Remove-Item -Recurse -Force build/launcher-image -ErrorAction SilentlyContinue
+          jpackage `
+            --type app-image `
+            --name SpaceClient `
+            --app-version 0.1.0 `
+            --input build/launcher/input `
+            --main-jar SpaceClient.jar `
+            --main-class com.spaceclient.launcher.LauncherMain `
+            --icon assets/SpaceClient.ico `
+            --dest build/launcher-image
+
+      - name: Build Windows installer
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path build/installer | Out-Null
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer/SpaceClient.iss
+
+      - name: Create release ZIP
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path build/release | Out-Null
+          Copy-Item build/installer/SpaceClient-Setup.exe build/release/SpaceClient-Setup.exe
+          Get-FileHash build/release/SpaceClient-Setup.exe -Algorithm SHA256 | Format-List | Out-File build/release/SHA256SUM.txt
+          Compress-Archive -Path build/release/SpaceClient-Setup.exe,build/release/SHA256SUM.txt -DestinationPath build/SpaceClient-Windows.zip -Force
+
+      - name: Upload Windows installer ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpaceClient-Windows
+          path: build/SpaceClient-Windows.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload standalone installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpaceClient-Setup
+          path: build/release/SpaceClient-Setup.exe
+          if-no-files-found: error
+          retention-days: 30
