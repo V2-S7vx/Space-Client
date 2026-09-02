@@ -45,8 +45,15 @@ jobs:
         shell: pwsh
         run: '& "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe" installer\SpaceClient.iss'
 
-      - name: Upload installer
+      - name: Put installer into ZIP
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force build/release | Out-Null
+          Compress-Archive -Path build/installer/SpaceClient-Setup.exe -DestinationPath build/release/SpaceClient-Windows.zip -Force
+
+      - name: Upload Windows ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: Space-Client-Windows-Installer
-          path: build/installer/SpaceClient-Setup.exe
+          name: Space-Client-Windows
+          path: build/release/SpaceClient-Windows.zip
+          if-no-files-found: error
