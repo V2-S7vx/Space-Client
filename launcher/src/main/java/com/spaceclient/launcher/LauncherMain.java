@@ -4,8 +4,8 @@ import java.awt.AlphaComposite;
 import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Font;
-import java.awt.Graphics2D;
 import java.awt.GradientPaint;
+import java.awt.Graphics2D;
 import java.awt.GraphicsEnvironment;
 import java.awt.RenderingHints;
 import java.awt.Toolkit;
@@ -42,7 +42,7 @@ public final class LauncherMain extends Canvas implements Runnable, KeyListener 
         "See you in the stars"
     };
 
-    private final Random random = new Random(0x5PACE2026L);
+    private final Random random = new Random(0x5ACE2026L);
     private final List<Star> stars = new ArrayList<>(STAR_COUNT);
     private JFrame frame;
     private volatile boolean running;
@@ -53,6 +53,9 @@ public final class LauncherMain extends Canvas implements Runnable, KeyListener 
     private int quoteIndex;
 
     public static void main(String[] args) {
+        if (GraphicsEnvironment.isHeadless()) {
+            throw new IllegalStateException("Space Client Launcher requires a graphical environment.");
+        }
         SwingUtilities.invokeLater(() -> new LauncherMain().start());
     }
 
@@ -63,18 +66,15 @@ public final class LauncherMain extends Canvas implements Runnable, KeyListener 
         frame.setResizable(false);
         frame.setIgnoreRepaint(true);
         frame.addKeyListener(this);
-        addKeyListener(this);
+
         setIgnoreRepaint(true);
+        addKeyListener(this);
         setBackground(new Color(2, 3, 5));
 
         frame.add(this);
         frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
         frame.setVisible(true);
         requestFocus();
-
-        if (GraphicsEnvironment.isHeadless()) {
-            return;
-        }
 
         resizeStarfield(getWidth(), getHeight());
         running = true;
@@ -173,8 +173,7 @@ public final class LauncherMain extends Canvas implements Runnable, KeyListener 
         ));
         g.fillRect(0, 0, width, height);
 
-        // A very subtle vignette keeps the focus in the middle without the
-        // blue glow/blob treatment from the reference image.
+        // Very subtle vignette: no blue glow/blob treatment.
         g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.22f));
         g.setPaint(new GradientPaint(
             width / 2f, 0, new Color(18, 18, 22, 0),
@@ -188,10 +187,9 @@ public final class LauncherMain extends Canvas implements Runnable, KeyListener 
         for (Star star : stars) {
             float pulse = 0.78f + 0.22f * (float) Math.sin(star.twinkleTime);
             int alpha = Math.max(20, Math.min(220, (int) (star.alpha * pulse)));
-            int size = star.size;
 
             g.setColor(new Color(255, 255, 255, alpha));
-            g.fillOval((int) star.x, (int) star.y, size, size);
+            g.fillOval((int) star.x, (int) star.y, star.size, star.size);
         }
     }
 
@@ -206,8 +204,7 @@ public final class LauncherMain extends Canvas implements Runnable, KeyListener 
         float fadeOut = Math.min(1f, (QUOTE_TRAVEL_MS - age) / 2_000f);
         float alpha = Math.max(0f, Math.min(fadeIn, fadeOut));
 
-        Font font = new Font("SansSerif", Font.PLAIN, 14);
-        g.setFont(font);
+        g.setFont(new Font("SansSerif", Font.PLAIN, 14));
         int textWidth = g.getFontMetrics().stringWidth(activeQuote.text);
         int x = (width - textWidth) / 2;
 
@@ -254,9 +251,7 @@ public final class LauncherMain extends Canvas implements Runnable, KeyListener 
         long millis = nanos / 1_000_000L;
         int extraNanos = (int) (nanos % 1_000_000L);
         try {
-            if (millis > 0 || extraNanos > 0) {
-                Thread.sleep(millis, extraNanos);
-            }
+            Thread.sleep(millis, extraNanos);
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
         }
@@ -273,19 +268,26 @@ public final class LauncherMain extends Canvas implements Runnable, KeyListener 
     @Override public void keyTyped(KeyEvent event) { }
     @Override public void keyReleased(KeyEvent event) { }
 
-    private record Star(
-        double x,
-        double y,
-        double velocityX,
-        double velocityY,
-        int size,
-        int alpha,
-        double twinkleTime,
-        double twinkleSpeed
-    ) {
-        private Star {
-            // Record fields are final, so stars are updated by replacement in
-            // the next launcher iteration if mutable animation is needed.
+    private static final class Star {
+        private double x;
+        private double y;
+        private final double velocityX;
+        private final double velocityY;
+        private final int size;
+        private final int alpha;
+        private double twinkleTime;
+        private final double twinkleSpeed;
+
+        private Star(double x, double y, double velocityX, double velocityY,
+                     int size, int alpha, double twinkleTime, double twinkleSpeed) {
+            this.x = x;
+            this.y = y;
+            this.velocityX = velocityX;
+            this.velocityY = velocityY;
+            this.size = size;
+            this.alpha = alpha;
+            this.twinkleTime = twinkleTime;
+            this.twinkleSpeed = twinkleSpeed;
         }
     }
 
